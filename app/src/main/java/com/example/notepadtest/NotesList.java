@@ -114,8 +114,8 @@ public class NotesList extends ListActivity {
         setListAdapter(adapter);
     }
     public static String getFormatedDateTime(String pattern,long dateTime){
-        SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern);
-        return sDateFormat.format(new Date(dateTime+1000*60*60*12));
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        return simpleDateFormat.format(new Date(dateTime+1000*60*60*12));
     }
 
     /**
