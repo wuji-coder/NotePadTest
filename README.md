@@ -98,3 +98,119 @@ String now = getFormatedDateTime("yyyy-MM-dd HH:mm:ss",System.currentTimeMillis(
 values.put(NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE, getFormatedDateTime("yyyy-MM-dd HH:mm:ss",System.currentTimeMillis()));
 ```
 #### 2.添加笔记查询功能（根据标题查询）
+
+先在list_options_menu.xml中新建一个查询的按钮
+```java
+<item
+        android:id="@+id/menu_search"
+        android:title="@string/menu_search"
+        android:icon="@android:drawable/ic_search_category_default"
+        app:showAsAction="ifRoom|withText">
+</item>
+```
+然后在NotesList中的onOptionsItemSelected的switch中添加对应menu_search的case，增加点击之后的反应
+```java
+case R.id.menu_search:
+                Intent intent = new Intent();
+                intent.setClass(NotesList.this,NoteSearch.class);
+                NotesList.this.startActivity(intent);
+                return true;
+```
+在layout中新建布局文件note_search_list.xml，先布局搜索页面
+```java
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:LinearLayout="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <SearchView
+        android:id="@+id/search_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:iconifiedByDefault="false"
+        android:queryHint="输入搜索内容..."
+        LinearLayout:layout_alignParentTop="true">
+    </SearchView>
+    <ListView
+        android:id="@android:id/list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+    </ListView>
+</LinearLayout>
+```
+新建一个名为NoteSearch的类，由于搜索出来的也是笔记列表，所以可以模仿NoteList的activity继承ListActivity。搜索采用SearchView实现，并对SearchView文本变化设置监听，然后通过实现implements SearchView.OnQueryTextListener接口来完成查询
+```java
+public class NoteSearch extends ListActivity  implements SearchView.OnQueryTextListener {
+    private static final String[] PROJECTION = new String[] {
+            NotePad.Notes._ID, // 0
+            NotePad.Notes.COLUMN_NAME_TITLE, // 1
+            //扩展显示时间
+            NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE,
+    };
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.note_search_list);
+        Intent intent = getIntent();
+        if (intent.getData() == null) {
+            intent.setData(NotePad.Notes.CONTENT_URI);
+        }
+        SearchView searchview = (SearchView)findViewById(R.id.search_view);
+        //为查询文本框注册监听器
+        searchview.setOnQueryTextListener(NoteSearch.this);
+    }
+    @Override
+    public boolean onQueryTextSubmit(String query) {
+        return false;
+    }
+    @Override
+    public boolean onQueryTextChange(String newText) {
+        String selection = NotePad.Notes.COLUMN_NAME_TITLE + " Like ? ";//查询条件
+        String[] selectionArgs = { "%"+newText+"%" };//查询条件参数，配合selection参数使用,%通配多个字符
+        Cursor cursor = managedQuery(
+                getIntent().getData(),            // Use the default content URI for the provider.
+                PROJECTION,                       // Return the note ID and title for each note. and modifcation date
+                selection,                        // 作为查询的过滤参数，也就是过滤出符合selection的数据，类似于SQL的Where语句之后的条件选择
+                selectionArgs,                    // 查询条件参数，配合selection参数使用
+                NotePad.Notes.DEFAULT_SORT_ORDER  // Use the default sort order.
+        );
+        //一个简单的适配器，将游标中的数据映射到布局文件中的TextView控件或者ImageView控件中
+        String[] dataColumns = { NotePad.Notes.COLUMN_NAME_TITLE ,  NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE };
+        int[] viewIDs = { android.R.id.text1 , R.id.text1_time };
+        SimpleCursorAdapter adapter = new SimpleCursorAdapter(
+                this,
+                R.layout.noteslist_item,
+                cursor,
+                dataColumns,
+                viewIDs
+        );
+        setListAdapter(adapter);
+        return true;
+    }
+    @Override
+    protected void onListItemClick(ListView l, View v, int position, long id) {
+        // Constructs a new URI from the incoming URI and the row ID
+        Uri uri = ContentUris.withAppendedId(getIntent().getData(), id);
+        // Gets the action from the incoming Intent
+        String action = getIntent().getAction();
+        // Handles requests for note data
+        if (Intent.ACTION_PICK.equals(action) || Intent.ACTION_GET_CONTENT.equals(action)) {
+            // Sets the result to return to the component that called this Activity. The
+            // result contains the new URI
+            setResult(RESULT_OK, new Intent().setData(uri));
+        } else {
+            // Sends out an Intent to start an Activity that can handle ACTION_EDIT. The
+            // Intent's data is the note ID URI. The effect is to call NoteEdit.
+            startActivity(new Intent(Intent.ACTION_EDIT, uri));
+        }
+    }
+}
+```
+最后在AndroidManifest.xml注册NoteSearch
+```java
+        <activity
+            android:name="NoteSearch"
+            android:label="@string/title_notes_search">
+        </activity>
+```
