@@ -14,8 +14,8 @@ public class NoteSearch extends ListActivity  implements SearchView.OnQueryTextL
     private static final String[] PROJECTION = new String[] {
             NotePad.Notes._ID, // 0
             NotePad.Notes.COLUMN_NAME_TITLE, // 1
-            //扩展 显示时间 颜色
-            NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE, // 2
+            //扩展 显示时间
+            NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE,
     };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,17 +35,16 @@ public class NoteSearch extends ListActivity  implements SearchView.OnQueryTextL
     }
     @Override
     public boolean onQueryTextChange(String newText) {
-        SearchView searchview = (SearchView)findViewById(R.id.search_view);
-        searchview.setOnQueryTextListener(NoteSearch.this);
-        String selection = NotePad.Notes.COLUMN_NAME_TITLE + " Like ? ";
-        String[] selectionArgs = { "%"+newText+"%" };
+        String selection = NotePad.Notes.COLUMN_NAME_TITLE + " Like ? ";//查询条件
+        String[] selectionArgs = { "%"+newText+"%" };//查询条件参数，配合selection参数使用,%通配多个字符
         Cursor cursor = managedQuery(
                 getIntent().getData(),            // Use the default content URI for the provider.
                 PROJECTION,                       // Return the note ID and title for each note. and modifcation date
-                selection,                        // 条件左边
-                selectionArgs,                    // 条件右边
+                selection,                        // 作为查询的过滤参数，也就是过滤出符合selection的数据，类似于SQL的Where语句之后的条件选择
+                selectionArgs,                    // 查询条件参数，配合selection参数使用
                 NotePad.Notes.DEFAULT_SORT_ORDER  // Use the default sort order.
         );
+        //一个简单的适配器，将游标中的数据映射到布局文件中的TextView控件或者ImageView控件中
         String[] dataColumns = { NotePad.Notes.COLUMN_NAME_TITLE ,  NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE };
         int[] viewIDs = { android.R.id.text1 , R.id.text1_time };
         SimpleCursorAdapter adapter = new SimpleCursorAdapter(
